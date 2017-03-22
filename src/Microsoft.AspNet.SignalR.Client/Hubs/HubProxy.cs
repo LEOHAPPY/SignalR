@@ -81,6 +81,7 @@ namespace Microsoft.AspNet.SignalR.Client.Hubs
         }
 
         [SuppressMessage("Microsoft.Design", "CA1031:DoNotCatchGeneralExceptionTypes", Justification = "Exceptions are flown to the caller")]
+        [SuppressMessage("Microsoft.Maintainability", "CA1502:AvoidExcessiveComplexity")]
         public Task<TResult> Invoke<TResult, TProgress>(string method, Action<TProgress> onProgress, params object[] args)
         {
             if (method == null)
@@ -111,11 +112,11 @@ namespace Microsoft.AspNet.SignalR.Client.Hubs
                         if (result.IsHubException.HasValue && result.IsHubException.Value)
                         {
                             // A HubException was thrown
-                            tcs.TrySetException(new HubException(result.Error, result.ErrorData));
+                            TaskAsyncHelper.Dispatch(() => tcs.TrySetException(new HubException(result.Error, result.ErrorData)));
                         }
                         else
                         {
-                            tcs.TrySetException(new InvalidOperationException(result.Error));
+                            TaskAsyncHelper.Dispatch(() => tcs.TrySetException(new InvalidOperationException(result.Error)));
                         }
                     }
                     else
@@ -136,24 +137,24 @@ namespace Microsoft.AspNet.SignalR.Client.Hubs
                             }
                             else if (result.Result != null)
                             {
-                                tcs.TrySetResult(result.Result.ToObject<TResult>(JsonSerializer));
+                                TaskAsyncHelper.Dispatch(() => tcs.TrySetResult(result.Result.ToObject<TResult>(JsonSerializer)));
                             }
                             else
                             {
-                                tcs.TrySetResult(default(TResult));
+                                TaskAsyncHelper.Dispatch(() => tcs.TrySetResult(default(TResult)));
                             }
                         }
                         catch (Exception ex)
                         {
                             // If we failed to set the result for some reason or to update
                             // state then just fail the tcs.
-                            tcs.TrySetUnwrappedException(ex);
+                            TaskAsyncHelper.Dispatch(() => tcs.TrySetUnwrappedException(ex));
                         }
                     }
                 }
                 else
                 {
-                    tcs.TrySetCanceled();
+                    TaskAsyncHelper.Dispatch(() => tcs.TrySetCanceled());
                 }
             });
 
